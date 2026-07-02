@@ -1,0 +1,7 @@
+crewai
+mcp 
+yfinance 
+pandas 
+matplotlib 
+python-dotenv
+litellm

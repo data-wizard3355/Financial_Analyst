@@ -1,0 +1,27 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Generated reports
+reports/*.pdf
+
+# Generated charts
+charts/*.png
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
