@@ -1,211 +1,461 @@
-Architecture Philosophy
+# 📈 Financial Analyst AI
 
-Modern AI applications often rely on Large Language Models (LLMs) to both understand user requests and decide how an application should execute them. While this approach offers flexibility, it can also lead to inconsistent workflows, unnecessary reasoning, higher token consumption, and unpredictable behavior.
+> A deterministic multi-agent financial analysis platform built with CrewAI, MCP (Model Context Protocol), Gemini, and Python.
 
-This project follows a hybrid architecture that separates language understanding from workflow orchestration.
+---
 
-The LLM is responsible for interpreting natural language and extracting structured information from the user's query. Once the query has been converted into a structured format, deterministic Python code takes over to decide exactly how the system should execute the request.
+## Overview
 
-This separation combines the strengths of AI with traditional software engineering, resulting in a system that is more predictable, easier to debug, and better suited for production environments.
+Financial Analyst AI is an intelligent financial research assistant capable of transforming natural language investment queries into professional financial reports.
 
-Why Two Crews?
+Instead of relying on a single Large Language Model (LLM) to perform every task, the system separates responsibilities into specialized AI agents coordinated through a deterministic execution planner.
 
-The project is intentionally divided into two independent CrewAI workflows.
+This hybrid architecture combines the flexibility of LLMs with the reliability and predictability of traditional software engineering.
 
-Crew 1 — Query Parsing
+---
 
-The first crew exists solely to understand the user's request.
+## Key Features
 
-Its responsibilities include:
+✅ Natural language financial queries
 
-Identifying stock ticker symbols
-Determining the requested time period
-Identifying the type of financial analysis
-Extracting requested charts
-Extracting requested financial metrics
+✅ Multi-stock comparison
 
-The output of this crew is a structured ParsedQuery object.
+✅ Technical analysis
+
+✅ Correlation analysis
+
+✅ Automatic chart generation
+
+✅ Professional PDF reports
+
+✅ Deterministic workflow planning
+
+✅ CrewAI multi-agent architecture
+
+✅ Model Context Protocol (MCP)
+
+---
+
+# Architecture Philosophy
+
+Modern AI applications often allow a Large Language Model to both understand a request **and decide how the application should execute it.**
+
+Although this provides flexibility, it also introduces several production challenges:
+
+- inconsistent workflows
+- hallucinated tool usage
+- higher token consumption
+- unpredictable execution
+- difficult debugging
+
+This project follows a different philosophy.
+
+The LLM is responsible only for understanding natural language.
+
+Once the user's request has been converted into structured data, deterministic Python code takes over and decides exactly how the application should execute the request.
+
+This hybrid architecture combines the strengths of AI with deterministic software engineering.
+
+---
+
+# Overall Architecture
+
+```text
+                            User Query
+                                 │
+                                 ▼
+                   ┌────────────────────────┐
+                   │ Query Parser Crew      │
+                   │ (LLM)                  │
+                   └────────────────────────┘
+                                 │
+                                 ▼
+                        ParsedQuery (Pydantic)
+                                 │
+                                 ▼
+                 ┌─────────────────────────────┐
+                 │ Deterministic Planner       │
+                 │ (Pure Python Business Rules)│
+                 └─────────────────────────────┘
+                                 │
+                                 ▼
+                      ExecutionPlan (Pydantic)
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          ▼                      ▼                      ▼
+  Research Agent       Visualization Agent      Analyst Agent
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 ▼
+                    Professional PDF Report
+```
+
+---
+
+# Why Two Crews?
+
+The application intentionally separates **language understanding** from **workflow execution**.
+
+## Crew 1 — Query Parser
+
+The first CrewAI workflow contains a single agent.
+
+Its only responsibility is understanding the user's natural language request.
+
+It extracts:
+
+- stock symbols
+- period
+- interval
+- analysis type
+- requested charts
+- requested metrics
+- PDF requirement
+
+It produces:
+
+```python
+ParsedQuery(...)
+```
 
 No financial tools are executed during this stage.
 
-This crew focuses entirely on language understanding, making it responsible only for interpreting the user's intent.
+This crew exists purely to transform natural language into structured data.
 
-Deterministic Execution Planner
+---
 
-Between the two crews sits the Execution Planner.
+## ParsedQuery
 
-The planner is not an AI agent.
+ParsedQuery represents **what the user asked for.**
 
-Instead, it is a deterministic Python module that converts the parsed query into an execution plan by applying predefined business rules.
+It acts as the interface between the LLM and deterministic software.
 
-Its responsibilities include:
+Example
 
-Selecting default charts when none are requested
-Expanding chart requests into individual chart-generation tasks
-Determining which execution tasks are required
-Preparing instructions for downstream agents
-Creating the final execution workflow
-
-Since this stage contains no LLM calls, the workflow is completely reproducible.
-
-Crew 2 — Execution
-
-The second crew performs the actual financial analysis.
-
-Unlike the first crew, its agents do not need to interpret the user's request again.
-
-Instead, every agent receives the already prepared ExecutionPlan and focuses only on its own specialized responsibility.
-
-The execution crew contains three agents:
-
-Research Agent — retrieves financial information and technical indicators.
-Visualization Agent — generates financial charts.
-Analyst Agent — prepares the final report and generates the PDF.
-
-Each agent performs one well-defined task without making workflow decisions.
-
-Execution Pipeline
-
-The complete workflow consists of three distinct stages.
-
-User Query
-      │
-      ▼
-Query Parser Crew
-      │
-      ▼
-ParsedQuery
-      │
-      ▼
-Execution Planner
-      │
-      ▼
-ExecutionPlan
-      │
-      ▼
-Execution Crew
-      │
-      ▼
-PDF Report
-
-Each stage has a single responsibility.
-
-This design follows the software engineering principle of separation of concerns, where each component focuses on one specific task.
-
-ParsedQuery
-
-ParsedQuery is the structured representation of the user's natural language request.
-
-It is produced by the Query Parser Agent and serves as the interface between natural language understanding and deterministic planning.
-
-A ParsedQuery contains information such as:
-
-Stock symbols
-Historical period
-Data interval
-Requested analysis type
-Requested charts
-Requested financial metrics
-Whether a PDF report should be generated
-
-For example:
-
+```python
 ParsedQuery(
-    symbols=["AAPL", "MSFT"],
+    symbols=["AAPL","MSFT"],
     action="comparison",
     period="5y",
     interval="1d",
     chart_requests=[...],
     metric_requests=[...]
 )
-ExecutionPlan
+```
 
-The ExecutionPlan is the deterministic representation of how the system should execute the user's request.
+---
 
-Unlike ParsedQuery, which represents what the user asked for, the ExecutionPlan represents what the application should do.
+# Deterministic Execution Planner
 
-It specifies:
+Between the two crews sits the Execution Planner.
 
-Which stocks should be analyzed
-Which metrics should be computed
-Which charts should be generated
-Which tasks should be executed
-Whether a PDF should be produced
+Unlike the agents, the planner is **not an LLM.**
 
-Every downstream agent receives the same execution plan, ensuring all agents operate on identical instructions.
+It is ordinary Python code.
 
-Deterministic Planning
+Its job is to convert the ParsedQuery into an ExecutionPlan.
 
-The planner converts a ParsedQuery into an ExecutionPlan.
+This stage applies business rules such as:
 
-During this process it applies business rules that are intentionally kept outside the LLM.
+- selecting default charts
+- expanding chart requests
+- determining visualization requirements
+- enabling PDF generation
 
-Examples include:
+Given the same ParsedQuery, the planner will always produce the same ExecutionPlan.
 
-Adding default charts when none are requested
-Expanding comparison charts into multi-stock chart tasks
-Creating separate technical charts for individual stocks
-Deciding whether visualization tasks are required
-Enabling PDF generation
+This guarantees reproducible execution.
 
-Because this stage is implemented entirely in Python, identical inputs always produce identical execution plans.
+---
 
-Why is ActionType Constrained?
+## ExecutionPlan
 
-The system limits the primary analysis type to a predefined set of supported actions:
+ParsedQuery describes:
 
+> What the user wants.
+
+ExecutionPlan describes:
+
+> What the application will execute.
+
+For example:
+
+```python
+ExecutionPlan(
+    symbols=["AAPL","MSFT"],
+    charts=[
+        ChartPlan(...),
+        ChartPlan(...)
+    ],
+    generate_pdf=True
+)
+```
+
+Every downstream agent receives the exact same execution plan.
+
+No downstream agent needs to reinterpret the user's request.
+
+---
+
+# Crew 2 — Execution
+
+The second Crew performs the actual financial analysis.
+
+Unlike Crew 1, it never interprets natural language.
+
+Instead, every agent receives the ExecutionPlan and performs one specialized responsibility.
+
+---
+
+## Research Agent
+
+Responsibilities
+
+- Retrieve stock information
+- Compute financial metrics
+- Calculate technical indicators
+- Retrieve historical data
+- Correlation analysis
+
+Tools
+
+- analyze_stock()
+- summarize_stock()
+- calculate_indicators()
+- analyze_correlation()
+- get_stock_data()
+
+The Research Agent never generates charts.
+
+---
+
+## Visualization Agent
+
+Responsibilities
+
+- Generate charts
+- Execute visualization requests
+- Reuse downloaded data
+
+Supported Charts
+
+- Price
+- Volume
+- Moving Average
+- Candlestick
+- Comparison
+- Heatmap
+- Returns
+- RSI
+- MACD
+- Volatility
+- Drawdown
+
+The Visualization Agent never performs financial analysis.
+
+---
+
+## Analyst Agent
+
+Responsibilities
+
+- Interpret research results
+- Combine charts
+- Write professional report
+- Generate PDF
+
+Tool
+
+generate_pdf_report()
+
+---
+
+# Why ActionType is Constrained
+
+The system intentionally limits the primary analysis workflow to a predefined set of supported actions.
+
+```python
 analysis
 technical_analysis
 comparison
 correlation
 volume_analysis
+```
 
-This does not restrict the user's ability to ask questions in natural language.
+This **does not restrict natural language.**
 
-Instead, the LLM is responsible for mapping many different ways of expressing a request into one of these standardized business actions.
+Instead, the LLM maps many different user queries into one standardized business action.
 
-For example:
+Examples
 
-User Query	Detected Action
-"Analyze Apple"	analysis
-"Compare Apple and Microsoft"	comparison
-"Show RSI and MACD"	technical_analysis
-"How correlated are Tesla and Nvidia?"	correlation
+| User Query | Action |
+|------------|--------|
+| Analyze Apple | analysis |
+| Compare Apple and Microsoft | comparison |
+| Show RSI and MACD | technical_analysis |
+| Correlation between Tesla and Nvidia | correlation |
 
-Constraining the action type simplifies downstream planning and ensures every supported workflow follows a predictable execution path.
+Constraining ActionType allows the deterministic planner to build predictable workflows.
 
-Why Not Let the LLM Decide the Entire Workflow?
+---
 
-Many agent-based systems allow the LLM to determine which tools should be called and which steps should be executed at runtime.
+# Why Not Let the LLM Decide Everything?
 
-While this increases flexibility, it can also introduce:
+Many modern agent systems allow the LLM to decide:
 
-Hallucinated workflows
-Inconsistent execution
-Higher token usage
-Difficult debugging
-Reduced reproducibility
+- which tools to call
+- which workflow to execute
+- which charts to create
 
-This project instead adopts a hybrid strategy.
+While flexible, this introduces:
 
-The LLM is responsible only for semantic understanding and report generation.
+- hallucinated workflows
+- inconsistent execution
+- increased token usage
+- difficult debugging
 
-Python is responsible for workflow orchestration and business logic.
+This project intentionally separates:
 
-This design provides the flexibility of natural language interfaces while maintaining the predictability of traditional software systems.
+LLM → Semantic Understanding
 
-Model Context Protocol (MCP)
+Python → Workflow Orchestration
 
-The project uses the Model Context Protocol (MCP) as the communication layer between AI agents and external tools.
+This hybrid design produces deterministic execution while preserving natural language flexibility.
 
-Rather than embedding business logic directly inside the agents, MCP exposes financial operations as reusable tools.
+---
 
-Examples include:
+# Model Context Protocol (MCP)
 
-Stock analysis
-Historical data retrieval
-Technical indicator calculation
-Chart generation
-PDF generation
+The project uses Model Context Protocol (MCP) as the communication layer between AI agents and external tools.
 
-Agents simply invoke MCP tools whenever external computation or data retrieval is required, making the system modular and easy to extend with additional capabilities.
+```text
+Agent
+   │
+   ▼
+MCP Tool
+   │
+   ▼
+Financial Function
+   │
+   ▼
+Yahoo Finance / Python
+   │
+   ▼
+Structured Result
+```
+
+Implemented MCP tools include:
+
+Research
+
+- analyze_stock()
+- summarize_stock()
+- calculate_indicators()
+- analyze_correlation()
+- get_stock_data()
+
+Visualization
+
+- generate_chart()
+
+Reporting
+
+- generate_pdf_report()
+
+---
+
+# Project Structure
+
+```text
+financial-analyst-ai/
+│
+├── crew/
+│   ├── agents.py
+│   ├── tasks.py
+│   ├── planner.py
+│   ├── task_builder.py
+│   ├── financial_crew.py
+│   ├── models.py
+│   └── llm.py
+│
+├── server/
+│   ├── server.py
+│   ├── research.py
+│   ├── visualization.py
+│   ├── pdf.py
+│
+├── charts/
+├── reports/
+├── stock_data/
+│
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# Technologies
+
+- Python
+- CrewAI
+- Google Gemini
+- MCP (Model Context Protocol)
+- Pydantic v2
+- pandas
+- yfinance
+- matplotlib
+- ReportLab
+
+---
+
+# Example Query
+
+```text
+Compare Apple, Microsoft and Nvidia over the last five years.
+
+Generate:
+
+• Price comparison
+• Moving averages
+• Volatility
+• Returns
+
+Analyze:
+
+• Technical indicators
+• Historical performance
+• Risks
+
+Recommend the best long-term investment.
+
+Generate the final PDF report.
+```
+
+---
+
+# Outputs
+
+```
+reports/
+    financial_report.pdf
+
+charts/
+    comparison.png
+    volatility.png
+    moving_average.png
+    returns.png
+```
+
+---
+
+# Future Improvements
+
+- Portfolio optimization
+- Risk-adjusted recommendations
+- News sentiment analysis
+- Fundamental analysis
+- Real-time streaming market data
+- Agent memory
+- Interactive dashboard
+- Web deployment
+- Multi-model support (Gemini, OpenAI, Groq, SambaNova)
